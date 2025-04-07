@@ -3,9 +3,11 @@ class ScraperService {
         this.settings = SETTINGS;
         // List of CORS proxies to try in order
         this.corsProxies = [
-            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://cors-anywhere.herokuapp.com/',
             'https://api.allorigins.win/raw?url=',
-            'https://api.codetabs.com/v1/proxy?quest='
+            'https://corsproxy.io/?',
+            'https://crossorigin.me/'
         ];
     }
 
@@ -15,33 +17,37 @@ class ScraperService {
                 throw new Error('URL is required');
             }
 
-            // Validate URL format
+            // Validate and format URL
+            let formattedUrl = url;
             try {
                 new URL(url);
             } catch (e) {
                 // If URL doesn't include protocol, prepend https://
                 if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                    url = 'https://' + url;
+                    formattedUrl = 'https://' + url;
                 }
             }
-
-            // Add cache-busting parameter to the URL
-            const cacheBuster = `_t=${Date.now()}`;
-            const urlWithCacheBuster = url + (url.includes('?') ? '&' : '?') + cacheBuster;
 
             // Try each CORS proxy in sequence until one works
             let lastError = null;
             for (const proxyUrl of this.corsProxies) {
                 try {
                     console.log('Trying proxy:', proxyUrl);
-                    const response = await fetch(proxyUrl + encodeURIComponent(urlWithCacheBuster), {
+                    
+                    // Add cache-busting parameter
+                    const cacheBuster = `_cb=${Date.now()}`;
+                    const urlWithCache = formattedUrl + (formattedUrl.includes('?') ? '&' : '?') + cacheBuster;
+                    
+                    const response = await fetch(proxyUrl + encodeURIComponent(urlWithCache), {
                         method: 'GET',
                         headers: {
                             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                            'Cache-Control': 'no-cache, no-store, must-revalidate',
-                            'Pragma': 'no-cache',
-                            'Expires': '0'
-                        }
+                            'Cache-Control': 'no-cache',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Origin': window.location.origin
+                        },
+                        mode: 'cors',
+                        credentials: 'omit'
                     });
 
                     if (!response.ok) {
@@ -55,16 +61,16 @@ class ScraperService {
                     }
 
                     console.log('Successfully fetched content using proxy:', proxyUrl);
-                    console.log('Content length:', content.length);
-                    return this.processResults({ content, url });
+                    return this.processResults({ content, url: formattedUrl });
                 } catch (error) {
                     console.warn(`Proxy ${proxyUrl} failed:`, error.message);
                     lastError = error;
-                    continue; // Try next proxy
+                    // Wait a short time before trying the next proxy
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    continue;
                 }
             }
 
-            // If we get here, all proxies failed
             throw new Error(`All proxies failed. Last error: ${lastError.message}`);
         } catch (error) {
             console.error('Detailed scraping error:', {
