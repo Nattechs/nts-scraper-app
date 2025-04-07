@@ -1,12 +1,8 @@
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
-        // Use a more reliable CORS proxy
-        this.corsProxies = [
-            'https://corsproxy.org/',
-            'https://proxy.cors.sh/',
-            'https://cors-anywhere.azm.workers.dev/'
-        ];
+        // Use Cloudflare Workers CORS proxy
+        this.corsProxy = 'https://api.cloudflare.workers.dev/cors-proxy';
     }
 
     async scrapeUrl(url, options = {}) {
@@ -28,44 +24,63 @@ class ScraperService {
 
             console.log('Fetching URL:', formattedUrl);
 
-            // Try each proxy in sequence
-            let lastError = null;
-            for (const proxy of this.corsProxies) {
-                try {
-                    const proxyUrl = proxy + formattedUrl;
-                    console.log('Trying proxy:', proxy);
+            // Use no-cors mode first
+            try {
+                const response = await fetch(formattedUrl, { 
+                    mode: 'no-cors',
+                    cache: 'no-store'
+                });
+                const content = await response.text();
+                console.log('Successfully fetched content directly');
+                return this.processResults({ content, url: formattedUrl });
+            } catch (directError) {
+                console.log('Direct fetch failed, trying proxy...');
+                
+                // If direct fetch fails, try proxy
+                const proxyResponse = await fetch(this.corsProxy, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        url: formattedUrl
+                    })
+                });
 
-                    const response = await fetch(proxyUrl, {
-                        mode: 'cors'
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const content = await response.text();
-                    
-                    if (!content || content.trim().length === 0) {
-                        throw new Error('Received empty content');
-                    }
-
-                    console.log('Successfully fetched content using:', proxy);
-                    return this.processResults({ content, url: formattedUrl });
-                } catch (error) {
-                    console.warn(`Proxy ${proxy} failed:`, error.message);
-                    lastError = error;
-                    continue;
+                if (!proxyResponse.ok) {
+                    throw new Error(`HTTP error! status: ${proxyResponse.status}`);
                 }
-            }
 
-            // If we get here, all proxies failed
-            throw new Error(`All proxies failed. Last error: ${lastError?.message}`);
+                const data = await proxyResponse.json();
+                
+                if (!data.content) {
+                    throw new Error('Failed to fetch webpage content');
+                }
+
+                console.log('Successfully fetched content via proxy');
+                return this.processResults({ content: data.content, url: formattedUrl });
+            }
         } catch (error) {
-            console.error('Scraping error:', {
-                message: error.message,
-                url: url
-            });
-            throw new Error(`Failed to scan website: ${error.message}`);
+            // Try one last time with a simple fetch
+            try {
+                console.log('All methods failed, trying simple fetch...');
+                const finalResponse = await fetch(formattedUrl);
+                const content = await finalResponse.text();
+                
+                if (!content || content.trim().length === 0) {
+                    throw new Error('Received empty content');
+                }
+
+                console.log('Successfully fetched content with simple fetch');
+                return this.processResults({ content, url: formattedUrl });
+            } catch (finalError) {
+                console.error('All fetch attempts failed:', {
+                    message: error.message,
+                    finalError: finalError.message,
+                    url: url
+                });
+                throw new Error(`Failed to scan website: Unable to fetch content`);
+            }
         }
     }
 
