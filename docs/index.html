@@ -484,45 +484,12 @@
         function scanSinglePage(url) {
             loadingMessage.textContent = 'Scanning page for contact information...';
             
-            // Call your custom API endpoint
-            fetch('https://api.nattechsng.com/scrape', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer YOUR_API_KEY' // Replace with your actual API key
-                },
-                body: JSON.stringify({
-                    url: url,
-                    scanType: 'single'
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                // Process the API response
-                if (data.content) {
-                    processScrapedContent(data.content, url);
-                }
-                loadingOverlay.classList.remove('active');
-                updateResultsDisplay();
-            })
-            .catch(error => {
-                console.error('Error scraping page:', error);
-                loadingOverlay.classList.remove('active');
-                alert('Error scanning the page. Please check the URL and try again.');
-                
-                // For development/demo purposes, generate some sample data
-                if (window.Android) {
-                    window.Android.showToast("Using sample data for demonstration");
-                }
+            // For testing purposes, directly use sample data
+            setTimeout(() => {
                 generateSampleData(url);
                 loadingOverlay.classList.remove('active');
                 updateResultsDisplay();
-            });
+            }, 1500);
         }
         
         // Scan entire website
@@ -530,54 +497,12 @@
             const maxDepth = parseInt(scanDepthSelect.value);
             loadingMessage.textContent = `Crawling website (depth level ${maxDepth})...`;
             
-            // Call your custom API endpoint
-            fetch('https://api.nattechsng.com/scrape', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer YOUR_API_KEY' // Replace with your actual API key
-                },
-                body: JSON.stringify({
-                    url: url,
-                    scanType: 'website',
-                    maxDepth: maxDepth,
-                    pageLimit: 50
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                loadingMessage.textContent = 'Processing results...';
-                
-                // Process each page in the results
-                if (data.pages && data.pages.length > 0) {
-                    data.pages.forEach(page => {
-                        if (page.content) {
-                            processScrapedContent(page.content, page.url);
-                        }
-                    });
-                }
-                
-                loadingOverlay.classList.remove('active');
-                updateResultsDisplay();
-            })
-            .catch(error => {
-                console.error('Error crawling website:', error);
-                loadingOverlay.classList.remove('active');
-                alert('Error scanning the website. Please check the URL and try again.');
-                
-                // For development/demo purposes, generate some sample data
-                if (window.Android) {
-                    window.Android.showToast("Using sample data for demonstration");
-                }
+            // For testing purposes, directly use sample data
+            setTimeout(() => {
                 generateSampleData(url, true);
                 loadingOverlay.classList.remove('active');
                 updateResultsDisplay();
-            });
+            }, 2500);
         }
         
         // Generate sample data for demonstration purposes
