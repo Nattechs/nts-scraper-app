@@ -1,8 +1,10 @@
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
-        // Use a more reliable CORS proxy
-        this.corsProxy = 'https://cors-proxy.htmldriven.com/?url=';
+        // Use ScraperAPI as the CORS proxy
+        this.corsProxy = 'https://api.scraperapi.com/scrape';
+        // Free API key with limited requests
+        this.apiKey = 'c13d1187e8c83d5c9e45e534f4abc873';
     }
 
     async scrapeUrl(url, options = {}) {
@@ -24,11 +26,10 @@ class ScraperService {
 
             console.log('Fetching URL:', formattedUrl);
             
-            const response = await fetch(this.corsProxy + encodeURIComponent(formattedUrl), {
+            const response = await fetch(`${this.corsProxy}?api_key=${this.apiKey}&url=${encodeURIComponent(formattedUrl)}`, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
                 }
             });
 
@@ -36,14 +37,14 @@ class ScraperService {
                 throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
             }
 
-            const data = await response.json();
+            const content = await response.text();
             
-            if (!data.contents) {
+            if (!content || content.trim().length === 0) {
                 throw new Error('Failed to fetch webpage content');
             }
 
             console.log('Successfully fetched content');
-            return this.processResults({ content: data.contents, url: formattedUrl });
+            return this.processResults({ content, url: formattedUrl });
         } catch (error) {
             console.error('Detailed scraping error:', {
                 message: error.message,
