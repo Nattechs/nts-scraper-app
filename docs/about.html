@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - NTS Scraper</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4895ef;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: var(--dark-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: white !important;
+        }
+        
+        .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: white !important;
+            transform: translateY(-2px);
+        }
+        
+        .active {
+            color: white !important;
+            border-bottom: 2px solid white;
+        }
+        
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem 0;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 2rem;
+        }
+        
+        .main-content {
+            flex: 1;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 1.5rem 0;
+            margin-top: 2rem;
+        }
+        
+        .feature-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+        
+        .feature-card {
+            text-align: center;
+            padding: 2rem;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+        
+        .team-img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .social-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            margin: 0 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .social-icon:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-3px);
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background-color: var(--primary-color);
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+        }
+        
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -2.4rem;
+            top: 0.25rem;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            border: 3px solid white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
+        .timeline-date {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .page-header {
+                padding: 1.5rem 0;
+            }
+            
+            .feature-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-search me-2"></i>NTS Scraper
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="settings">Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="about">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="contact">Contact</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1 class="display-5 fw-bold"><i class="fas fa-info-circle me-3"></i>About NTS Scraper</h1>
+            <p class="lead">Learn more about our powerful email and phone number extraction tool</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <div class="container main-content">
+        <!-- About Section -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="text-center mb-4">Our Mission</h2>
+                        <p class="lead text-center mb-4">
+                            To provide businesses and individuals with a powerful, user-friendly tool for extracting contact information from websites.
+                        </p>
+                        <p>
+                            NTS Scraper was developed by NATTECHS NG to address the common challenge of finding contact information on websites. Whether you're a sales professional looking to build a prospect list, a researcher collecting data, or a marketer building an outreach campaign, NTS Scraper simplifies the process of gathering emails and phone numbers from websites.
+                        </p>
+                        <p>
+                            Our tool is designed with both simplicity and power in mind. The intuitive interface makes it easy for anyone to use, while the advanced scanning capabilities ensure you get comprehensive results. With features like whole-website scanning, customizable settings, and multiple export options, NTS Scraper is the ideal solution for all your contact information extraction needs.
+                        </p>
+                        <p>
+                            We are committed to continuous improvement and regularly update our tool with new features and enhancements based on user feedback. Our goal is to make NTS Scraper the most reliable and efficient contact information extraction tool available.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Key Features -->
+        <h2 class="text-center mb-4">Key Features</h2>
+        <div class="row mb-5">
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                    <h4>Email Extraction</h4>
+                    <p>Quickly find and extract email addresses from any website with our powerful scanning algorithm.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-phone-alt"></i>
+                    </div>
+                    <h4>Phone Number Detection</h4>
+                    <p>Identify phone numbers in various formats from websites, even when they're embedded in text or images.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h4>Whole Website Scanning</h4>
+                    <p>Scan entire websites, not just individual pages, to ensure you don't miss any contact information.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <h4>Customizable Settings</h4>
+                    <p>Tailor the scanning process to your specific needs with our comprehensive settings options.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-export"></i>
+                    </div>
+                    <h4>Multiple Export Formats</h4>
+                    <p>Export your results in various formats including CSV, JSON, and Excel for easy integration with other tools.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="feature-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h4>Fast Performance</h4>
+                    <p>Get results quickly with our optimized scanning engine, even when processing large websites.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- How It Works -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header py-3">
+                        <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>How It Works</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-date">Step 1: Enter Website URL</div>
+                                <p>Start by entering the URL of the website you want to scan. Make sure to include the full address including http:// or https://.</p>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-date">Step 2: Configure Scan Options</div>
+                                <p>Choose what type of information you want to extract (emails, phone numbers, or both) and whether you want to scan just the homepage or the entire website.</p>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-date">Step 3: Start Scanning</div>
+                                <p>Click the Scan button to begin the extraction process. Our tool will navigate through the website, analyzing the content for contact information.</p>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-date">Step 4: Review Results</div>
+                                <p>Once the scan is complete, you'll see a list of all the emails and phone numbers found, along with their source pages.</p>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-date">Step 5: Export or Copy</div>
+                                <p>You can copy individual results, copy all results at once, or export the data in your preferred format for use in other applications.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Company Info -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="card">
+                    <div class="card-header py-3">
+                        <h5 class="mb-0"><i class="fas fa-building me-2"></i>About NATTECHS NG</h5>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                        <p class="lead mb-4">
+                            NATTECHS NG is a leading technology company specializing in web tools and solutions that help businesses streamline their operations and improve efficiency.
+                        </p>
+                        <p>
+                            Founded in 2020, we have quickly established ourselves as innovators in the field of web scraping and data extraction. Our team of experienced developers and data scientists is dedicated to creating powerful yet user-friendly tools that solve real-world problems.
+                        </p>
+                        <p>
+                            In addition to NTS Scraper, we offer a range of other web tools and services designed to help businesses leverage the power of data. Our commitment to quality, reliability, and customer satisfaction has earned us the trust of clients across various industries.
+                        </p>
+                        <div class="mt-4">
+                            <a href="https://facebook.com/akoladenattechs" target="_blank" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+                            <a href="https://twitter.com/akoladenattechs" target="_blank" class="social-icon"><i class="fab fa-twitter"></i></a>
+                            <a href="https://linkedin.com/in/akoladenattechs" target="_blank" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+                            <a href="https://instagram.com/akoladenattechs" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-0">Copyright 2025, all rights reserved</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Built By: NATTECHS NG</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Navigation function
+        function navigateTo(page) {
+            window.location.href = `${page}`;
+        }
+    </script>
+</body>
+</html>
