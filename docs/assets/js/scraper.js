@@ -1,10 +1,8 @@
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
-        // Use ScraperAPI as the CORS proxy
-        this.corsProxy = 'https://api.scraperapi.com/scrape';
-        // Free API key with limited requests
-        this.apiKey = 'c13d1187e8c83d5c9e45e534f4abc873';
+        // Use allorigins.win with raw response
+        this.corsProxy = 'https://api.allorigins.win/raw';
     }
 
     async scrapeUrl(url, options = {}) {
@@ -26,11 +24,19 @@ class ScraperService {
 
             console.log('Fetching URL:', formattedUrl);
             
-            const response = await fetch(`${this.corsProxy}?api_key=${this.apiKey}&url=${encodeURIComponent(formattedUrl)}`, {
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const proxyUrl = `${this.corsProxy}?url=${encodeURIComponent(formattedUrl)}&timestamp=${timestamp}`;
+            
+            const response = await fetch(proxyUrl, {
                 method: 'GET',
                 headers: {
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-                }
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Cache-Control': 'no-cache',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                mode: 'cors',
+                cache: 'no-store'
             });
 
             if (!response.ok) {
@@ -46,12 +52,38 @@ class ScraperService {
             console.log('Successfully fetched content');
             return this.processResults({ content, url: formattedUrl });
         } catch (error) {
-            console.error('Detailed scraping error:', {
-                message: error.message,
-                url: url,
-                stack: error.stack
-            });
-            throw new Error(`Failed to scan website: ${error.message}`);
+            // Try fallback proxy if first one fails
+            try {
+                console.log('Primary proxy failed, trying fallback...');
+                const fallbackProxy = 'https://api.codetabs.com/v1/proxy?quest=';
+                const fallbackResponse = await fetch(fallbackProxy + encodeURIComponent(formattedUrl), {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
+                if (!fallbackResponse.ok) {
+                    throw new Error(`Fallback HTTP error! status: ${fallbackResponse.status}`);
+                }
+
+                const fallbackContent = await fallbackResponse.text();
+                
+                if (!fallbackContent || fallbackContent.trim().length === 0) {
+                    throw new Error('Failed to fetch webpage content from fallback');
+                }
+
+                console.log('Successfully fetched content using fallback proxy');
+                return this.processResults({ content: fallbackContent, url: formattedUrl });
+            } catch (fallbackError) {
+                console.error('All proxies failed:', {
+                    originalError: error.message,
+                    fallbackError: fallbackError.message,
+                    url: url
+                });
+                throw new Error(`Failed to scan website: ${error.message}`);
+            }
         }
     }
 
