@@ -1,8 +1,12 @@
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
-        // Use allorigins.win with get format
-        this.corsProxy = 'https://api.allorigins.win/get';
+        // Use a more reliable CORS proxy
+        this.corsProxies = [
+            'https://corsproxy.org/',
+            'https://proxy.cors.sh/',
+            'https://cors-anywhere.azm.workers.dev/'
+        ];
     }
 
     async scrapeUrl(url, options = {}) {
@@ -23,76 +27,45 @@ class ScraperService {
             }
 
             console.log('Fetching URL:', formattedUrl);
-            
-            // Use simpler request format
-            const proxyUrl = `${this.corsProxy}?url=${encodeURIComponent(formattedUrl)}`;
-            
-            const response = await fetch(proxyUrl);
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            
-            if (!data.contents) {
-                throw new Error('Failed to fetch webpage content');
-            }
-
-            console.log('Successfully fetched content');
-            return this.processResults({ content: data.contents, url: formattedUrl });
-        } catch (error) {
-            // Try fallback proxy if first one fails
-            try {
-                console.log('Primary proxy failed, trying fallback...');
-                const fallbackProxy = 'https://api.allorigins.win/raw';
-                const fallbackUrl = `${fallbackProxy}?url=${encodeURIComponent(formattedUrl)}`;
-                
-                const fallbackResponse = await fetch(fallbackUrl);
-
-                if (!fallbackResponse.ok) {
-                    throw new Error(`Fallback HTTP error! status: ${fallbackResponse.status}`);
-                }
-
-                const fallbackContent = await fallbackResponse.text();
-                
-                if (!fallbackContent || fallbackContent.trim().length === 0) {
-                    throw new Error('Failed to fetch webpage content from fallback');
-                }
-
-                console.log('Successfully fetched content using fallback proxy');
-                return this.processResults({ content: fallbackContent, url: formattedUrl });
-            } catch (fallbackError) {
-                // Try one last proxy
+            // Try each proxy in sequence
+            let lastError = null;
+            for (const proxy of this.corsProxies) {
                 try {
-                    console.log('Fallback failed, trying last resort...');
-                    const lastProxy = 'https://cors.eu.org/';
-                    const lastUrl = lastProxy + formattedUrl;
-                    
-                    const lastResponse = await fetch(lastUrl);
-                    
-                    if (!lastResponse.ok) {
-                        throw new Error(`Last resort HTTP error! status: ${lastResponse.status}`);
-                    }
+                    const proxyUrl = proxy + formattedUrl;
+                    console.log('Trying proxy:', proxy);
 
-                    const lastContent = await lastResponse.text();
-                    
-                    if (!lastContent || lastContent.trim().length === 0) {
-                        throw new Error('Failed to fetch webpage content from last resort');
-                    }
-
-                    console.log('Successfully fetched content using last resort proxy');
-                    return this.processResults({ content: lastContent, url: formattedUrl });
-                } catch (lastError) {
-                    console.error('All proxies failed:', {
-                        originalError: error.message,
-                        fallbackError: fallbackError.message,
-                        lastError: lastError.message,
-                        url: url
+                    const response = await fetch(proxyUrl, {
+                        mode: 'cors'
                     });
-                    throw new Error(`Failed to scan website: All proxies failed`);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const content = await response.text();
+                    
+                    if (!content || content.trim().length === 0) {
+                        throw new Error('Received empty content');
+                    }
+
+                    console.log('Successfully fetched content using:', proxy);
+                    return this.processResults({ content, url: formattedUrl });
+                } catch (error) {
+                    console.warn(`Proxy ${proxy} failed:`, error.message);
+                    lastError = error;
+                    continue;
                 }
             }
+
+            // If we get here, all proxies failed
+            throw new Error(`All proxies failed. Last error: ${lastError?.message}`);
+        } catch (error) {
+            console.error('Scraping error:', {
+                message: error.message,
+                url: url
+            });
+            throw new Error(`Failed to scan website: ${error.message}`);
         }
     }
 
