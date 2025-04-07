@@ -5,29 +5,16 @@ class ScraperService {
 
     async scrapeUrl(url, options = {}) {
         try {
-            const response = await fetch(`${CONFIG.API_URL}/scrape`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${CONFIG.API_KEY}`
-                },
-                body: JSON.stringify({
-                    url,
-                    scanType: options.scanEntireWebsite ? 'website' : 'single',
-                    maxDepth: options.scanEntireWebsite ? this.settings.scanDepth : 1,
-                    pageLimit: this.settings.pageLimit,
-                    validateEmails: this.settings.validateEmails,
-                    phoneFormat: this.settings.phoneFormat,
-                    followExternalLinks: this.settings.followExternalLinks
-                })
-            });
+            // Use a CORS proxy to fetch the webpage
+            const proxyUrl = 'https://api.allorigins.win/raw?url=';
+            const response = await fetch(proxyUrl + encodeURIComponent(url));
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            return this.processResults(data);
+            const content = await response.text();
+            return this.processResults({ content, url });
         } catch (error) {
             console.error('Scraping error:', error);
             throw error;
@@ -40,18 +27,9 @@ class ScraperService {
             phones: []
         };
 
-        // Process single page results
+        // Process the page content
         if (data.content) {
             this.extractContactInfo(data.content, data.url, results);
-        }
-
-        // Process multiple page results
-        if (data.pages) {
-            data.pages.forEach(page => {
-                if (page.content) {
-                    this.extractContactInfo(page.content, page.url, results);
-                }
-            });
         }
 
         // Remove duplicates if enabled
@@ -70,8 +48,8 @@ class ScraperService {
         const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
         const emails = content.match(emailRegex) || [];
         
-        // Extract phone numbers
-        const phoneRegex = /(?:\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+        // Extract phone numbers (improved regex)
+        const phoneRegex = /(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
         const phones = content.match(phoneRegex) || [];
 
         // Add to results with source URL
@@ -84,6 +62,36 @@ class ScraperService {
             if (!this.isValidPhoneNumber(phone)) return;
             results.phones.push({ value: phone, source: sourceUrl });
         });
+
+        // Also try to find links if scanning entire website is enabled
+        if (this.settings.followExternalLinks) {
+            const links = this.extractLinks(content, sourceUrl);
+            // Process first 5 links asynchronously
+            links.slice(0, 5).forEach(async (link) => {
+                try {
+                    const subPageResults = await this.scrapeUrl(link);
+                    results.emails.push(...subPageResults.emails);
+                    results.phones.push(...subPageResults.phones);
+                } catch (error) {
+                    console.error(`Error scraping ${link}:`, error);
+                }
+            });
+        }
+    }
+
+    extractLinks(content, baseUrl) {
+        const links = [];
+        const linkRegex = /href=["'](https?:\/\/[^"']+)["']/g;
+        let match;
+        
+        while ((match = linkRegex.exec(content)) !== null) {
+            const link = match[1];
+            if (link.startsWith(baseUrl)) {
+                links.push(link);
+            }
+        }
+        
+        return links;
     }
 
     isValidEmail(email) {
@@ -93,14 +101,15 @@ class ScraperService {
     }
 
     isValidPhoneNumber(phone) {
-        // Basic phone number validation
-        return phone.length >= 10;
+        // Improved phone number validation
+        const cleanPhone = phone.replace(/[^\d]/g, '');
+        return cleanPhone.length >= 10 && cleanPhone.length <= 15;
     }
 
     removeDuplicates(results) {
         return {
-            emails: [...new Map(results.emails.map(item => [item.value, item])).values()],
-            phones: [...new Map(results.phones.map(item => [item.value, item])).values()]
+            emails: [...new Map(results.emails.map(item => [item.value.toLowerCase(), item])).values()],
+            phones: [...new Map(results.phones.map(item => [item.value.replace(/[^\d]/g, ''), item])).values()]
         };
     }
 
