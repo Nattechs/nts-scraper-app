@@ -1,8 +1,8 @@
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
-        // Use Cloudflare Workers CORS proxy
-        this.corsProxy = 'https://api.cloudflare.workers.dev/cors-proxy';
+        // Use allorigins.win CORS proxy
+        this.corsProxy = 'https://api.allorigins.win/raw?url=';
     }
 
     async scrapeUrl(url, options = {}) {
@@ -24,85 +24,67 @@ class ScraperService {
 
             console.log('Fetching URL:', formattedUrl);
 
-            // Use no-cors mode first
-            try {
-                const response = await fetch(formattedUrl, { 
-                    mode: 'no-cors',
-                    cache: 'no-store'
-                });
-                const content = await response.text();
-                console.log('Successfully fetched content directly');
-                return this.processResults({ content, url: formattedUrl });
-            } catch (directError) {
-                console.log('Direct fetch failed, trying proxy...');
-                
-                // If direct fetch fails, try proxy
-                const proxyResponse = await fetch(this.corsProxy, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        url: formattedUrl
-                    })
-                });
+            // Use CORS proxy
+            const proxyUrl = `${this.corsProxy}${encodeURIComponent(formattedUrl)}`;
+            console.log('Using proxy URL:', proxyUrl);
 
-                if (!proxyResponse.ok) {
-                    throw new Error(`HTTP error! status: ${proxyResponse.status}`);
+            const response = await fetch(proxyUrl, {
+                headers: {
+                    'Content-Type': 'text/plain',
+                    'Access-Control-Allow-Origin': '*'
                 }
-
-                const data = await proxyResponse.json();
-                
-                if (!data.content) {
-                    throw new Error('Failed to fetch webpage content');
-                }
-
-                console.log('Successfully fetched content via proxy');
-                return this.processResults({ content: data.content, url: formattedUrl });
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const content = await response.text();
+            console.log('Successfully fetched content via proxy');
+            console.log('Content length:', content.length);
+            console.log('Content preview:', content.substring(0, 200));
+
+            // Process the results
+            if (!content || content.trim().length === 0) {
+                console.error('Empty content received');
+                throw new Error('Received empty content');
+            }
+
+            const results = this.processResults({ content, url: formattedUrl });
+            console.log('Processed results:', results);
+            return results;
+
         } catch (error) {
-            // Try one last time with a simple fetch
-            try {
-                console.log('All methods failed, trying simple fetch...');
-                const finalResponse = await fetch(formattedUrl);
-                const content = await finalResponse.text();
-                
-                if (!content || content.trim().length === 0) {
-                    throw new Error('Received empty content');
-                }
-
-                console.log('Successfully fetched content with simple fetch');
-                return this.processResults({ content, url: formattedUrl });
-            } catch (finalError) {
-                console.error('All fetch attempts failed:', {
-                    message: error.message,
-                    finalError: finalError.message,
-                    url: url
-                });
-                throw new Error(`Failed to scan website: Unable to fetch content`);
-            }
+            console.error('Scraping failed:', error.message);
+            throw new Error(`Failed to scan website: ${error.message}`);
         }
     }
 
     processResults({ content, url }) {
+        console.log('Processing content...');
         const results = {
             emails: [],
             phones: []
         };
 
         if (!content) {
+            console.log('No content to process');
             return results;
         }
 
         // Extract emails
+        console.log('Extracting emails...');
         const emails = this.extractEmails(content);
+        console.log('Found emails:', emails);
         results.emails = emails.map(email => ({
             value: email,
             source: url
         }));
 
         // Extract phone numbers
+        console.log('Extracting phone numbers...');
         const phones = this.extractPhoneNumbers(content);
+        console.log('Found phones:', phones);
         results.phones = phones.map(phone => ({
             value: phone,
             source: url
@@ -112,6 +94,7 @@ class ScraperService {
         results.emails = this.removeDuplicates(results.emails);
         results.phones = this.removeDuplicates(results.phones);
 
+        console.log('Final results:', results);
         return results;
     }
 
@@ -122,22 +105,27 @@ class ScraperService {
     }
 
     extractPhoneNumbers(content) {
-        const phoneRegex = /(?:\+\d{1,3}[-. ]?)?\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}/g;
+        // Enhanced phone regex to catch more formats
+        const phoneRegex = /(?:(?:\+?\d{1,3}[-. ]?)?(?:\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}))|(?:\d{3}[-. ]?\d{4}[-. ]?\d{4})/g;
         const matches = content.match(phoneRegex) || [];
         return matches.filter(phone => this.isValidPhoneNumber(phone));
     }
 
     isValidEmail(email) {
-        // Basic email validation
+        // Enhanced email validation
         const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        return regex.test(email);
+        const valid = regex.test(email);
+        console.log('Validating email:', email, valid);
+        return valid;
     }
 
     isValidPhoneNumber(phone) {
         // Remove all non-numeric characters
         const digits = phone.replace(/\D/g, '');
-        // Check if the number of digits is valid (10-15 digits)
-        return digits.length >= 10 && digits.length <= 15;
+        // Check if the number of digits is valid (7-15 digits)
+        const valid = digits.length >= 7 && digits.length <= 15;
+        console.log('Validating phone:', phone, valid);
+        return valid;
     }
 
     removeDuplicates(items) {
