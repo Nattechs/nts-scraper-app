@@ -1,0 +1,53 @@
+/* Mobile-specific styles */
+:root {
+    --safe-area-inset-top: env(safe-area-inset-top);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom);
+}
+
+body {
+    padding-top: var(--safe-area-inset-top);
+    padding-bottom: var(--safe-area-inset-bottom);
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Larger touch targets for mobile */
+button, 
+input[type="button"],
+input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* Mobile-friendly navigation */
+.nav-menu {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    padding: 10px;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-around;
+    z-index: 1000;
+}
+
+/* Prevent text size adjustment */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Better scrolling */
+* {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbars but keep functionality */
+.scrollable {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.scrollable::-webkit-scrollbar {
+    display: none;
+} 
