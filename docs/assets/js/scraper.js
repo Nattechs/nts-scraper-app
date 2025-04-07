@@ -1,23 +1,78 @@
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
+        // List of CORS proxies to try in order
+        this.corsProxies = [
+            'https://corsproxy.io/?',
+            'https://api.allorigins.win/raw?url=',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
     }
 
     async scrapeUrl(url, options = {}) {
         try {
-            // Use a CORS proxy to fetch the webpage
-            const proxyUrl = 'https://api.allorigins.win/raw?url=';
-            const response = await fetch(proxyUrl + encodeURIComponent(url));
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (!url) {
+                throw new Error('URL is required');
             }
 
-            const content = await response.text();
-            return this.processResults({ content, url });
+            // Validate URL format
+            try {
+                new URL(url);
+            } catch (e) {
+                // If URL doesn't include protocol, prepend https://
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+            }
+
+            // Add cache-busting parameter to the URL
+            const cacheBuster = `_t=${Date.now()}`;
+            const urlWithCacheBuster = url + (url.includes('?') ? '&' : '?') + cacheBuster;
+
+            // Try each CORS proxy in sequence until one works
+            let lastError = null;
+            for (const proxyUrl of this.corsProxies) {
+                try {
+                    console.log('Trying proxy:', proxyUrl);
+                    const response = await fetch(proxyUrl + encodeURIComponent(urlWithCacheBuster), {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Cache-Control': 'no-cache, no-store, must-revalidate',
+                            'Pragma': 'no-cache',
+                            'Expires': '0'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                    }
+
+                    const content = await response.text();
+                    
+                    if (!content || content.trim().length === 0) {
+                        throw new Error('Received empty content from the server');
+                    }
+
+                    console.log('Successfully fetched content using proxy:', proxyUrl);
+                    console.log('Content length:', content.length);
+                    return this.processResults({ content, url });
+                } catch (error) {
+                    console.warn(`Proxy ${proxyUrl} failed:`, error.message);
+                    lastError = error;
+                    continue; // Try next proxy
+                }
+            }
+
+            // If we get here, all proxies failed
+            throw new Error(`All proxies failed. Last error: ${lastError.message}`);
         } catch (error) {
-            console.error('Scraping error:', error);
-            throw error;
+            console.error('Detailed scraping error:', {
+                message: error.message,
+                url: url,
+                stack: error.stack
+            });
+            throw new Error(`Failed to scan website: ${error.message}`);
         }
     }
 
