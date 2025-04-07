@@ -399,6 +399,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/scraper.js"></script>
     <script>
         // Global variables to store results
         let allResults = {
@@ -428,6 +430,9 @@
         // Initialize Bootstrap toast
         const toast = new bootstrap.Toast(copyToast);
         
+        // Initialize scraper service
+        const scraperService = new ScraperService();
+        
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
             // Toggle scan depth select based on scan entire website checkbox
@@ -449,7 +454,7 @@
         });
         
         // Start the scanning process
-        function startScan() {
+        async function startScan() {
             const url = websiteUrlInput.value.trim();
             
             if (!url) {
@@ -472,135 +477,20 @@
             // Show loading overlay
             loadingOverlay.classList.add('active');
             
-            // Determine scan type
-            if (scanEntireWebsiteCheckbox.checked) {
-                scanEntireWebsite(url);
-            } else {
-                scanSinglePage(url);
-            }
-        }
-        
-        // Scan a single page
-        function scanSinglePage(url) {
-            loadingMessage.textContent = 'Scanning page for contact information...';
-            
-            // For testing purposes, directly use sample data
-            setTimeout(() => {
-                generateSampleData(url);
-                loadingOverlay.classList.remove('active');
+            try {
+                // Call the scraper service
+                const results = await scraperService.scrapeUrl(url, {
+                    scanEntireWebsite: scanEntireWebsiteCheckbox.checked
+                });
+                
+                // Update the results
+                allResults = results;
                 updateResultsDisplay();
-            }, 1500);
-        }
-        
-        // Scan entire website
-        function scanEntireWebsite(url) {
-            const maxDepth = parseInt(scanDepthSelect.value);
-            loadingMessage.textContent = `Crawling website (depth level ${maxDepth})...`;
-            
-            // For testing purposes, directly use sample data
-            setTimeout(() => {
-                generateSampleData(url, true);
+            } catch (error) {
+                console.error('Error during scanning:', error);
+                alert('An error occurred while scanning. Please try again.');
+            } finally {
                 loadingOverlay.classList.remove('active');
-                updateResultsDisplay();
-            }, 2500);
-        }
-        
-        // Generate sample data for demonstration purposes
-        function generateSampleData(url, isWebsite = false) {
-            // Sample emails
-            const sampleEmails = [
-                'contact@' + new URL(url).hostname,
-                'info@' + new URL(url).hostname,
-                'support@' + new URL(url).hostname,
-                'sales@' + new URL(url).hostname,
-                'admin@' + new URL(url).hostname
-            ];
-            
-            // Sample phone numbers
-            const samplePhones = [
-                '+1 (555) 123-4567',
-                '+1 (555) 987-6543',
-                '+234 814 417 7230',
-                '555-123-4567',
-                '(555) 987-6543'
-            ];
-            
-            // Add sample emails
-            sampleEmails.forEach(email => {
-                allResults.emails.push({
-                    value: email,
-                    source: url
-                });
-            });
-            
-            // Add sample phone numbers
-            samplePhones.forEach(phone => {
-                allResults.phones.push({
-                    value: phone,
-                    source: url
-                });
-            });
-            
-            // If scanning website, add more results with different source URLs
-            if (isWebsite) {
-                const hostname = new URL(url).hostname;
-                const paths = ['about', 'contact', 'team', 'support', 'careers'];
-                
-                paths.forEach(path => {
-                    const pageUrl = 'https://' + hostname + '/' + path;
-                    
-                    // Add 1-2 emails per page
-                    allResults.emails.push({
-                        value: path + '@' + hostname,
-                        source: pageUrl
-                    });
-                    
-                    // Add 1-2 phone numbers per page
-                    if (Math.random() > 0.5) {
-                        allResults.phones.push({
-                            value: '+1 (555) ' + Math.floor(100 + Math.random() * 900) + '-' + Math.floor(1000 + Math.random() * 9000),
-                            source: pageUrl
-                        });
-                    }
-                });
-            }
-        }
-        
-        // Process the scraped content to extract emails and phone numbers
-        function processScrapedContent(content, sourceUrl) {
-            if (!content) return;
-            
-            // Extract emails if option is checked
-            if (scanEmailsCheckbox.checked) {
-                const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-                const emails = content.match(emailRegex) || [];
-                
-                // Add unique emails to results
-                emails.forEach(email => {
-                    if (!allResults.emails.some(item => item.value === email)) {
-                        allResults.emails.push({
-                            value: email,
-                            source: sourceUrl
-                        });
-                    }
-                });
-            }
-            
-            // Extract phone numbers if option is checked
-            if (scanPhonesCheckbox.checked) {
-                // This regex looks for common phone number formats
-                const phoneRegex = /(?:\+\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
-                const phones = content.match(phoneRegex) || [];
-                
-                // Add unique phone numbers to results
-                phones.forEach(phone => {
-                    if (!allResults.phones.some(item => item.value === phone)) {
-                        allResults.phones.push({
-                            value: phone,
-                            source: sourceUrl
-                        });
-                    }
-                });
             }
         }
         
