@@ -1,8 +1,8 @@
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
-        // Use allorigins.win CORS proxy
-        this.corsProxy = 'https://api.allorigins.win/raw?url=';
+        // Use allorigins.win CORS proxy with HTTPS
+        this.corsProxy = 'https://api.allorigins.win/get?url=';
     }
 
     async scrapeUrl(url, options = {}) {
@@ -12,50 +12,58 @@ class ScraperService {
             }
 
             // Validate and format URL
-            let formattedUrl = url;
-            try {
-                new URL(url);
-            } catch (e) {
-                // If URL doesn't include protocol, prepend https://
-                if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                    formattedUrl = 'https://' + url;
-                }
+            let targetUrl = url.trim();
+            
+            // Handle protocol
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                targetUrl = 'https://' + targetUrl;
             }
+            
+            // Force HTTPS for security
+            targetUrl = targetUrl.replace('http://', 'https://');
 
-            console.log('Fetching URL:', formattedUrl);
+            console.log('Target URL:', targetUrl);
 
-            // Use CORS proxy
-            const proxyUrl = `${this.corsProxy}${encodeURIComponent(formattedUrl)}`;
-            console.log('Using proxy URL:', proxyUrl);
+            // Construct proxy URL
+            const proxyUrl = `${this.corsProxy}${encodeURIComponent(targetUrl)}`;
+            console.log('Proxy URL:', proxyUrl);
 
-            const response = await fetch(proxyUrl, {
-                headers: {
-                    'Content-Type': 'text/plain',
-                    'Access-Control-Allow-Origin': '*'
-                }
-            });
+            const response = await fetch(proxyUrl);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const content = await response.text();
-            console.log('Successfully fetched content via proxy');
+            const data = await response.json();
+            
+            if (!data.contents) {
+                throw new Error('No content received from proxy');
+            }
+
+            const content = data.contents;
+            console.log('Successfully fetched content');
             console.log('Content length:', content.length);
             console.log('Content preview:', content.substring(0, 200));
 
+            // Create virtual document to parse HTML content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'text/html');
+            
+            // Extract text content from the document
+            const textContent = doc.body.textContent;
+
             // Process the results
-            if (!content || content.trim().length === 0) {
+            if (!textContent || textContent.trim().length === 0) {
                 console.error('Empty content received');
                 throw new Error('Received empty content');
             }
 
-            const results = this.processResults({ content, url: formattedUrl });
+            const results = this.processResults({ content: textContent, url: targetUrl });
             console.log('Processed results:', results);
             return results;
 
         } catch (error) {
-            console.error('Scraping failed:', error.message);
+            console.error('Scraping failed:', error);
             throw new Error(`Failed to scan website: ${error.message}`);
         }
     }
@@ -72,71 +80,101 @@ class ScraperService {
             return results;
         }
 
-        // Extract emails
-        console.log('Extracting emails...');
-        const emails = this.extractEmails(content);
-        console.log('Found emails:', emails);
-        results.emails = emails.map(email => ({
-            value: email,
-            source: url
-        }));
+        try {
+            // Extract emails
+            console.log('Extracting emails...');
+            const emails = this.extractEmails(content);
+            console.log('Found emails:', emails);
+            results.emails = emails.map(email => ({
+                value: email,
+                source: url
+            }));
 
-        // Extract phone numbers
-        console.log('Extracting phone numbers...');
-        const phones = this.extractPhoneNumbers(content);
-        console.log('Found phones:', phones);
-        results.phones = phones.map(phone => ({
-            value: phone,
-            source: url
-        }));
+            // Extract phone numbers
+            console.log('Extracting phone numbers...');
+            const phones = this.extractPhoneNumbers(content);
+            console.log('Found phones:', phones);
+            results.phones = phones.map(phone => ({
+                value: phone,
+                source: url
+            }));
 
-        // Remove duplicates
-        results.emails = this.removeDuplicates(results.emails);
-        results.phones = this.removeDuplicates(results.phones);
+            // Remove duplicates
+            results.emails = this.removeDuplicates(results.emails);
+            results.phones = this.removeDuplicates(results.phones);
 
-        console.log('Final results:', results);
-        return results;
+            console.log('Final results:', results);
+            return results;
+        } catch (error) {
+            console.error('Error processing results:', error);
+            return results;
+        }
     }
 
     extractEmails(content) {
-        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-        const matches = content.match(emailRegex) || [];
-        return matches.filter(email => this.isValidEmail(email));
+        try {
+            const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+            const matches = content.match(emailRegex) || [];
+            return matches.filter(email => this.isValidEmail(email));
+        } catch (error) {
+            console.error('Error extracting emails:', error);
+            return [];
+        }
     }
 
     extractPhoneNumbers(content) {
-        // Enhanced phone regex to catch more formats
-        const phoneRegex = /(?:(?:\+?\d{1,3}[-. ]?)?(?:\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}))|(?:\d{3}[-. ]?\d{4}[-. ]?\d{4})/g;
-        const matches = content.match(phoneRegex) || [];
-        return matches.filter(phone => this.isValidPhoneNumber(phone));
+        try {
+            // Enhanced phone regex to catch more formats
+            const phoneRegex = /(?:(?:\+?\d{1,3}[-. ]?)?(?:\(?\d{3}\)?[-. ]?\d{3}[-. ]?\d{4}))|(?:\d{3}[-. ]?\d{4}[-. ]?\d{4})/g;
+            const matches = content.match(phoneRegex) || [];
+            return matches.filter(phone => this.isValidPhoneNumber(phone));
+        } catch (error) {
+            console.error('Error extracting phone numbers:', error);
+            return [];
+        }
     }
 
     isValidEmail(email) {
-        // Enhanced email validation
-        const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-        const valid = regex.test(email);
-        console.log('Validating email:', email, valid);
-        return valid;
+        try {
+            // Enhanced email validation
+            const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            const valid = regex.test(email);
+            console.log('Validating email:', email, valid);
+            return valid;
+        } catch (error) {
+            console.error('Error validating email:', error);
+            return false;
+        }
     }
 
     isValidPhoneNumber(phone) {
-        // Remove all non-numeric characters
-        const digits = phone.replace(/\D/g, '');
-        // Check if the number of digits is valid (7-15 digits)
-        const valid = digits.length >= 7 && digits.length <= 15;
-        console.log('Validating phone:', phone, valid);
-        return valid;
+        try {
+            // Remove all non-numeric characters
+            const digits = phone.replace(/\D/g, '');
+            // Check if the number of digits is valid (7-15 digits)
+            const valid = digits.length >= 7 && digits.length <= 15;
+            console.log('Validating phone:', phone, valid);
+            return valid;
+        } catch (error) {
+            console.error('Error validating phone number:', error);
+            return false;
+        }
     }
 
     removeDuplicates(items) {
-        const seen = new Set();
-        return items.filter(item => {
-            const value = item.value.toLowerCase();
-            if (seen.has(value)) {
-                return false;
-            }
-            seen.add(value);
-            return true;
-        });
+        try {
+            const seen = new Set();
+            return items.filter(item => {
+                const value = item.value.toLowerCase();
+                if (seen.has(value)) {
+                    return false;
+                }
+                seen.add(value);
+                return true;
+            });
+        } catch (error) {
+            console.error('Error removing duplicates:', error);
+            return items;
+        }
     }
 } 
