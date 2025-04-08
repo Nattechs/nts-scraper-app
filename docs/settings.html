@@ -8,20 +8,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
+            /* Theme variables will be set by JavaScript */
             --primary-color: #4361ee;
             --secondary-color: #3f37c9;
             --accent-color: #4895ef;
-            --light-color: #f8f9fa;
-            --dark-color: #212529;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-            color: var(--dark-color);
+            background-color: var(--background-color);
+            color: var(--text-color);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         
         .navbar {
@@ -63,10 +67,11 @@
         }
         
         .card {
-            border: none;
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
             margin-bottom: 1.5rem;
         }
         
@@ -99,14 +104,18 @@
         }
         
         .form-control, .form-select {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
             border-radius: 50px;
             padding: 0.75rem 1.5rem;
-            border: 1px solid #ced4da;
             transition: all 0.3s ease;
         }
         
         .form-control:focus, .form-select:focus {
+            background-color: var(--card-bg);
             border-color: var(--primary-color);
+            color: var(--text-color);
             box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
         }
         
@@ -164,6 +173,20 @@
             .page-header {
                 padding: 1.5rem 0;
             }
+        }
+        
+        /* Dark theme specific styles */
+        [data-theme="dark"] .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        [data-theme="dark"] .form-select option {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+        }
+        
+        [data-theme="dark"] .text-muted {
+            color: rgba(255, 255, 255, 0.6) !important;
         }
     </style>
 </head>
@@ -449,12 +472,14 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/config.js"></script>
     <script>
         // DOM elements
         const pageLimitInput = document.getElementById('pageLimit');
         const pageLimitValue = document.getElementById('pageLimitValue');
         const saveSettingsBtn = document.getElementById('saveSettingsBtn');
         const saveToast = document.getElementById('saveToast');
+        const themeSelect = document.getElementById('themeSelect');
         
         // Initialize Bootstrap toast
         const toast = new bootstrap.Toast(saveToast);
@@ -467,6 +492,17 @@
             // Update page limit value display
             pageLimitInput.addEventListener('input', function() {
                 pageLimitValue.textContent = this.value;
+            });
+            
+            // Theme selection change
+            themeSelect.addEventListener('change', function() {
+                const selectedTheme = this.value;
+                if (selectedTheme === 'system') {
+                    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    setTheme(systemTheme);
+                } else {
+                    setTheme(selectedTheme);
+                }
             });
             
             // Save settings button
