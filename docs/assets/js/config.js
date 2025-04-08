@@ -53,30 +53,43 @@ const CONFIG = {
 
 // Theme management
 function setTheme(theme) {
+    console.log('Setting theme to:', theme); // Debug log
     const root = document.documentElement;
     const themeColors = theme === 'dark' ? CONFIG.THEME.DARK : CONFIG.THEME.LIGHT;
 
-    root.style.setProperty('--primary-color', themeColors.primary);
-    root.style.setProperty('--secondary-color', themeColors.secondary);
-    root.style.setProperty('--accent-color', themeColors.accent);
-    root.style.setProperty('--background-color', themeColors.background);
-    root.style.setProperty('--text-color', themeColors.text);
-    root.style.setProperty('--card-bg', themeColors.cardBg);
-    root.style.setProperty('--border-color', themeColors.borderColor);
+    // Apply theme colors
+    Object.entries(themeColors).forEach(([key, value]) => {
+        const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+        root.style.setProperty(`--${cssKey}`, value);
+    });
 
+    // Set theme attribute
     document.body.setAttribute('data-theme', theme);
+    
+    // Save theme preference
     localStorage.setItem('ntsScraperTheme', theme);
+    
+    // Force a repaint
+    document.body.style.display = 'none';
+    document.body.offsetHeight; // Trigger a reflow
+    document.body.style.display = '';
 }
 
 function initializeTheme() {
+    console.log('Initializing theme...'); // Debug log
     const savedTheme = localStorage.getItem('ntsScraperTheme');
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     const themeSelect = document.getElementById('themeSelect');
     
+    console.log('Saved theme:', savedTheme); // Debug log
+    console.log('System theme:', systemTheme); // Debug log
+    
     if (themeSelect) {
         themeSelect.value = savedTheme || 'system';
+        console.log('Theme select value set to:', themeSelect.value); // Debug log
     }
 
+    // Apply the theme
     if (savedTheme === 'system' || !savedTheme) {
         setTheme(systemTheme);
     } else {
@@ -92,7 +105,10 @@ function initializeTheme() {
 }
 
 // Initialize theme when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeTheme);
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded, initializing theme...'); // Debug log
+    initializeTheme();
+});
 
 // Export the configuration
 if (typeof module !== 'undefined' && module.exports) {

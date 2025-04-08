@@ -497,12 +497,19 @@
             // Theme selection change
             themeSelect.addEventListener('change', function() {
                 const selectedTheme = this.value;
+                console.log('Theme selected:', selectedTheme); // Debug log
+                
                 if (selectedTheme === 'system') {
                     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    console.log('Applying system theme:', systemTheme); // Debug log
                     setTheme(systemTheme);
                 } else {
+                    console.log('Applying selected theme:', selectedTheme); // Debug log
                     setTheme(selectedTheme);
                 }
+                
+                // Save the theme preference
+                localStorage.setItem('ntsScraperTheme', selectedTheme);
             });
             
             // Save settings button
