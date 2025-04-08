@@ -1,8 +1,17 @@
+// Default settings for the scraper
+const SETTINGS = {
+    maxDepth: 2,
+    followExternalLinks: false,
+    maxLinks: 5,
+    timeout: 30000,
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+};
+
 class ScraperService {
     constructor() {
         this.settings = SETTINGS;
         // Use allorigins.win CORS proxy with HTTPS
-        this.corsProxy = 'https://api.allorigins.win/raw?url=';
+        this.corsProxy = 'https://api.allorigins.win/get?url=';
     }
 
     async scrapeUrl(url, options = {}) {
@@ -34,13 +43,13 @@ class ScraperService {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // Get the content as text directly
-            const content = await response.text();
+            const data = await response.json();
             
-            if (!content || content.trim().length === 0) {
+            if (!data.contents) {
                 throw new Error('No content received from proxy');
             }
 
+            const content = data.contents;
             console.log('Successfully fetched content');
             console.log('Content length:', content.length);
             console.log('Content preview:', content.substring(0, 200));
@@ -50,7 +59,7 @@ class ScraperService {
             const doc = parser.parseFromString(content, 'text/html');
             
             // Extract text content from the document
-            const textContent = doc.body ? doc.body.textContent : content;
+            const textContent = doc.body.textContent;
 
             // Process the results
             if (!textContent || textContent.trim().length === 0) {
